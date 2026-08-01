@@ -82,7 +82,7 @@ export default function FeaturesSection() {
             <span className="gradient-text-violet-green">Every Market</span>
           </h2>
           <p className="text-white/60 text-base sm:text-lg leading-relaxed">
-            Built for traders who specialize in index futures and options — where liquidity is
+            Built for traders who specialize in index futures and options; where liquidity is
             deep, patterns are reliable, and AI-driven precision pays.
           </p>
         </div>
