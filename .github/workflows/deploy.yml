@@ -49,14 +49,14 @@ jobs:
       - name: Add .nojekyll
         run: touch dist/public/.nojekyll
 
-      # 7. Push built output to iamabotama/ggtrading.io
+      # 7. Push built output to VFAssociates/ggtrading.io
       - name: Deploy to ggtrading.io
         uses: peaceiris/actions-gh-pages@v4
         with:
-          # DEPLOY_TOKEN must be a Personal Access Token (classic) with repo scope
-          # Add it as a secret named DEPLOY_TOKEN in iamabotama/ggtrading Settings → Secrets
-          personal_token: ${{ secrets.DEPLOY_TOKEN }}
-          external_repository: iamabotama/ggtrading.io
+          # PAGES_DEPLOY_KEY: SSH private key; matching public key is a write-enabled
+          # deploy key on VFAssociates/ggtrading.io (Settings → Deploy keys)
+          deploy_key: ${{ secrets.PAGES_DEPLOY_KEY }}
+          external_repository: VFAssociates/ggtrading.io
           publish_branch: main
           publish_dir: ./dist/public
           cname: ggtrading.io
