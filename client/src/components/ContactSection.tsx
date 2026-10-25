@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { callFunction } from "@/lib/supabase";
+import Turnstile, { TURNSTILE_SITE_KEY } from "@/components/Turnstile";
 import { Mail } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -20,6 +21,8 @@ export default function ContactSection() {
   const [message, setMessage] = useState("");
   const [website, setWebsite] = useState(""); // hidden from people; bots fill it in
   const [sending, setSending] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   useEffect(() => {
     if (!emailTouched && user?.email) setEmail(user.email);
@@ -29,15 +32,18 @@ export default function ContactSection() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (TURNSTILE_SITE_KEY && !captchaToken) return toast.error("Please wait for the spam check to finish.");
     setSending(true);
     try {
-      await callFunction("contact", { name, email, message, website });
+      await callFunction("contact", { name, email, message, website, captchaToken });
       toast.success("Message sent! We'll get back to you by email.");
       setMessage("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't send your message. Please try again.");
     } finally {
       setSending(false);
+      // Each token works once.
+      setCaptchaReset((n) => n + 1);
     }
   }
 
@@ -89,6 +95,7 @@ export default function ContactSection() {
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
           />
+          <Turnstile onToken={setCaptchaToken} resetKey={captchaReset} />
           <Button type="submit" disabled={sending} className="bg-[oklch(0.48_0.26_292)] hover:bg-[oklch(0.55_0.26_292)] text-white font-semibold gap-2">
             <Mail size={16} /> {sending ? "Sending..." : "Send message"}
           </Button>

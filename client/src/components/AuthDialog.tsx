@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Turnstile, { TURNSTILE_SITE_KEY } from "@/components/Turnstile";
 import { PLAN_NAMES, supabase, type Plan } from "@/lib/supabase";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -22,6 +23,9 @@ export default function AuthDialog({ open, onOpenChange, plan }: { open: boolean
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
+  // Supabase checks this token itself once CAPTCHA protection is turned on in the project's Auth settings.
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   async function google() {
     setBusy(true);
@@ -34,12 +38,15 @@ export default function AuthDialog({ open, onOpenChange, plan }: { open: boolean
 
   async function withEmail(e: FormEvent, mode: "signup" | "login") {
     e.preventDefault();
+    if (TURNSTILE_SITE_KEY && !captchaToken) return toast.error("Please wait for the spam check to finish.");
     setBusy(true);
+    const captcha = captchaToken || undefined;
     const { data, error } =
       mode === "signup"
-        ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: returnUrl() } })
-        : await supabase.auth.signInWithPassword({ email, password });
+        ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: returnUrl(), captchaToken: captcha } })
+        : await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: captcha } });
     setBusy(false);
+    setCaptchaReset((n) => n + 1);
     if (error) return toast.error(error.message);
     // With email confirmation on, sign-up returns no session until the link in the email is clicked.
     if (mode === "signup" && !data.session) setCheckEmail(true);
@@ -63,6 +70,7 @@ export default function AuthDialog({ open, onOpenChange, plan }: { open: boolean
           onChange={(e) => setPassword(e.target.value)}
         />
       </div>
+      <Turnstile onToken={setCaptchaToken} resetKey={captchaReset} />
       <Button type="submit" disabled={busy} className="bg-[oklch(0.48_0.26_292)] hover:bg-[oklch(0.55_0.26_292)] text-white font-semibold">
         {mode === "signup" ? "Create account" : "Log in"}
       </Button>

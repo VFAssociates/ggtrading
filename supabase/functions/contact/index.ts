@@ -9,6 +9,20 @@ async function sha256(text: string) {
   return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** Cloudflare Turnstile check. Skipped until TURNSTILE_SECRET_KEY is set (the site only shows the widget once its site key is set). */
+async function passesCaptcha(token: string, ip: string): Promise<boolean> {
+  const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
+  if (!secret) return true;
+  if (!token) return false;
+  const form = new FormData();
+  form.append("secret", secret);
+  form.append("response", token);
+  if (ip) form.append("remoteip", ip);
+  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+  const result = await res.json().catch(() => ({ success: false }));
+  return result.success === true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return preflight(req);
   if (req.method !== "POST") return json(req, 405, { error: "Use POST" });
@@ -30,8 +44,13 @@ Deno.serve(async (req) => {
   if (!EMAIL.test(email) || email.length > 254) return json(req, 400, { error: "Please enter a valid email address." });
   if (!message || message.length > 5000) return json(req, 400, { error: "Please enter a message (up to 5,000 characters)." });
 
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+  if (!(await passesCaptcha(String(body.captchaToken ?? ""), ip))) {
+    return json(req, 400, { error: "The spam check didn't pass. Please try again." });
+  }
+
   const db = serviceClient();
-  const ipHash = await sha256(req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown");
+  const ipHash = await sha256(ip || "unknown");
   const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const { count } = await db.from("contact_messages").select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", since);
   if ((count ?? 0) >= MAX_PER_HOUR) return json(req, 429, { error: "Too many messages. Please try again in an hour." });
