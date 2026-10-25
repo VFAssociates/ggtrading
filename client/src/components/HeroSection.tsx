@@ -6,8 +6,8 @@
    "See Our Results" scrolls to #performance. */
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { TrendingUp, Zap, BarChart2 } from "lucide-react";
-import { toast } from "sonner";
 
 const HERO_IMAGE =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663273809872/A28evjrqCmFMdqNrmCPLoV/gg_hero_v6_fusion-kBoMtMnGugJgHHiESbPj8p.webp";
@@ -20,6 +20,7 @@ const stats = [
 ];
 
 export default function HeroSection() {
+  const { join } = useAuth();
   const scrollToPerformance = () => {
     document.getElementById("performance")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -114,7 +115,7 @@ export default function HeroSection() {
             <Button
               size="lg"
               className="cta-pulse bg-[oklch(0.48_0.26_292)] hover:bg-[oklch(0.55_0.26_292)] text-white font-bold text-sm sm:text-base px-6 sm:px-7 py-4 sm:py-5 rounded-lg transition-all duration-150 active:scale-[0.97] w-full sm:w-auto"
-              onClick={() => toast.success("Membership signup coming soon — we'll notify you at launch!")}
+              onClick={() => void join("free")}
             >
               Join the Community
             </Button>

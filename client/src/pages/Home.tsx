@@ -1,6 +1,6 @@
 /* GG Trading — Home Page
    Design: Quantum Violet AI Trading Command Center
-   Sections: Navbar → Hero → Features → Performance → Community → Pricing → Footer */
+   Sections: Navbar → Hero → Features → Performance → Community → Pricing → Contact → Footer */
 
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
@@ -9,6 +9,7 @@ import PerformanceSection from "@/components/PerformanceSection";
 import CommunitySection from "@/components/CommunitySection";
 import LeadershipSection from "@/components/LeadershipSection";
 import PricingSection from "@/components/PricingSection";
+import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -22,6 +23,7 @@ export default function Home() {
         <LeadershipSection />
         <CommunitySection />
         <PricingSection />
+        <ContactSection />
       </main>
       <Footer />
     </div>
