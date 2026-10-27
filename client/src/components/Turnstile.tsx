@@ -1,9 +1,10 @@
-/* Cloudflare Turnstile spam check. Shown only when VITE_TURNSTILE_SITE_KEY is set;
-   without it (local development) forms work without a check. */
+/* Cloudflare Turnstile spam check. The site key is public (widget "ggtrading.io forms" in the
+   admin@vftech.io Cloudflare account; hostnames ggtrading.io, www.ggtrading.io, localhost).
+   Set VITE_TURNSTILE_SITE_KEY to "" to turn the check off. */
 
 import { useEffect, useRef } from "react";
 
-export const TURNSTILE_SITE_KEY: string = import.meta.env.VITE_TURNSTILE_SITE_KEY || "";
+export const TURNSTILE_SITE_KEY: string = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "0x4AAAAAAFoi0aMqqcB74bBH";
 
 declare global {
   interface Window {
