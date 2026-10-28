@@ -1,4 +1,4 @@
-// Shared by the contact and membership functions: CORS, the service-role client, and EmailJS.
+// Shared by the contact and membership functions: CORS, the service-role client, and Resend email.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "https://ggtrading.io,https://www.ggtrading.io,http://localhost:3000")
@@ -45,49 +45,38 @@ export interface Email {
   replyTo?: string;
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 /**
- * Sends emails through EmailJS, one per second (its rate limit). Two templates cover everything:
- * EMAILJS_TEMPLATE_USER for people who used the site, EMAILJS_TEMPLATE_ADMIN for VFTech.
- * Both take {{to_email}}, {{to_name}}, {{subject}}, {{message}} and {{reply_to}}.
- * Returns false if EmailJS isn't set up yet or any send failed; the data is saved either way.
+ * Sends emails through Resend (https://resend.com) in one batch call.
+ * RESEND_API_KEY is a server-side secret: set it with `supabase secrets set`, never in the repo or the site.
+ * RESEND_FROM must be an address on a domain verified in Resend, e.g. "GG Trading <noreply@ggtrading.io>".
+ * `template` is kept so callers don't change; both kinds go out as plain-text emails.
+ * Returns false if Resend isn't set up yet or the send failed; the data is saved either way.
  */
 export async function sendEmails(emails: { template: "user" | "admin"; email: Email }[]): Promise<boolean> {
-  const serviceId = Deno.env.get("EMAILJS_SERVICE_ID");
-  const publicKey = Deno.env.get("EMAILJS_PUBLIC_KEY");
-  const privateKey = Deno.env.get("EMAILJS_PRIVATE_KEY");
-  const templates = { user: Deno.env.get("EMAILJS_TEMPLATE_USER"), admin: Deno.env.get("EMAILJS_TEMPLATE_ADMIN") };
-  if (!serviceId || !publicKey || !privateKey || !templates.user || !templates.admin) {
-    console.warn("EmailJS isn't configured yet; not sending emails.");
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  const from = Deno.env.get("RESEND_FROM") ?? `${SITE_NAME} <noreply@ggtrading.io>`;
+  if (!apiKey) {
+    console.warn("RESEND_API_KEY isn't set yet; not sending emails.");
     return false;
   }
+  if (emails.length === 0) return true;
 
-  let allSent = true;
-  for (const [i, { template, email }] of emails.entries()) {
-    if (i > 0) await sleep(1100);
-    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        service_id: serviceId,
-        template_id: templates[template],
-        user_id: publicKey,
-        accessToken: privateKey,
-        template_params: {
-          to_email: email.to,
-          to_name: email.toName ?? "",
-          subject: email.subject,
-          message: email.message,
-          reply_to: email.replyTo ?? ADMIN_EMAIL,
-          site_name: SITE_NAME,
-        },
-      }),
-    });
-    if (!res.ok) {
-      allSent = false;
-      console.error(`EmailJS ${template} email failed: ${res.status} ${await res.text()}`);
-    }
+  const res = await fetch("https://api.resend.com/emails/batch", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(
+      emails.map(({ email }) => ({
+        from,
+        to: [email.toName ? `${email.toName.replace(/[<>"]/g, "")} <${email.to}>` : email.to],
+        subject: email.subject,
+        text: email.message,
+        reply_to: email.replyTo ?? ADMIN_EMAIL,
+      })),
+    ),
+  });
+  if (!res.ok) {
+    console.error(`Resend send failed: ${res.status} ${await res.text()}`);
+    return false;
   }
-  return allSent;
+  return true;
 }
