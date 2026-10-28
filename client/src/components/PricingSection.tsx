@@ -4,11 +4,12 @@
    Mobile: single column stacked, full-width cards */
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { Check, Zap } from "lucide-react";
-import { toast } from "sonner";
 
 const plans = [
   {
+    id: "free" as const,
     name: "Free",
     price: "$0",
     period: "/month",
@@ -28,6 +29,7 @@ const plans = [
     checkColor: "text-[oklch(0.68_0.19_162)]",
   },
   {
+    id: "pro" as const,
     name: "Pro",
     price: "$49",
     period: "/month",
@@ -51,6 +53,7 @@ const plans = [
     checkColor: "text-[oklch(0.62_0.22_292)]",
   },
   {
+    id: "elite" as const,
     name: "Elite",
     price: "$149",
     period: "/month",
@@ -75,6 +78,8 @@ const plans = [
 ];
 
 export default function PricingSection() {
+  const { join, plan: currentPlan } = useAuth();
+
   return (
     <section id="pricing" className="py-16 sm:py-24 relative bg-[oklch(0.09_0.03_265)]">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[oklch(0.48_0.26_292)/40%] to-transparent" />
@@ -146,9 +151,9 @@ export default function PricingSection() {
               <Button
                 className={`w-full font-semibold transition-all duration-150 active:scale-[0.97] ${plan.ctaClass}`}
                 variant={plan.highlight || plan.elite ? "default" : "outline"}
-                onClick={() => toast.success(`${plan.name} membership signup coming soon!`)}
+                onClick={() => void join(plan.id)}
               >
-                {plan.cta}
+                {currentPlan === plan.id ? "Your plan" : plan.cta}
               </Button>
             </div>
           ))}

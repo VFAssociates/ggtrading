@@ -1,0 +1,10 @@
+# Supabase CLI settings for deploying the functions in supabase/functions.
+# The site calls them with the publishable key (not a JWT), so the gateway's JWT check is off;
+# each function checks the signed-in user itself where it matters (membership).
+project_id = "gbiribpgeolhwfsduluy"
+
+[functions.contact]
+verify_jwt = false
+
+[functions.membership]
+verify_jwt = false

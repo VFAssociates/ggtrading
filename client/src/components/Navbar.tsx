@@ -8,7 +8,14 @@ import logoSrc from "@/assets/gg_trading_logo.png";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { Link } from "wouter";
-import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+
+// "Join Now" sends people to the plans; picking one there starts the signup.
+const goToPricing = () => {
+  const pricing = document.getElementById("pricing");
+  if (pricing) pricing.scrollIntoView({ behavior: "smooth" });
+  else window.location.href = "/#pricing";
+};
 
 const tickerItems = [
   { symbol: "NQ",   name: "Nasdaq-100", price: "21,452.50", change: "+1.36%",  up: true  },
@@ -31,11 +38,13 @@ const navLinks = [
   { label: "Streams",     href: "/streams",      external: false },
   { label: "Community",   href: "/#community",   external: false },
   { label: "Pricing",     href: "/#pricing",     external: false },
+  { label: "Contact",     href: "/#contact",     external: false },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled]     = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, openAuth, signOut } = useAuth();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40);
@@ -116,18 +125,23 @@ export default function Navbar() {
 
           {/* Desktop CTA — violet primary */}
           <div className="hidden md:flex items-center gap-3">
+            {user && (
+              <span className="text-xs text-white/50 max-w-[160px] truncate" title={user.email}>
+                {user.email}
+              </span>
+            )}
             <Button
               variant="ghost"
               size="sm"
               className="text-white/70 hover:text-white hover:bg-white/5"
-              onClick={() => toast.info("Login coming soon!")}
+              onClick={() => (user ? void signOut() : openAuth())}
             >
-              Log In
+              {user ? "Log Out" : "Log In"}
             </Button>
             <Button
               size="sm"
               className="cta-pulse bg-[oklch(0.48_0.26_292)] hover:bg-[oklch(0.55_0.26_292)] text-white font-semibold px-5 transition-all duration-150 active:scale-[0.97]"
-              onClick={() => toast.success("Membership signup coming soon! Stay tuned.")}
+              onClick={goToPricing}
             >
               Join Now
             </Button>
@@ -157,8 +171,15 @@ export default function Navbar() {
               </Link>
             ))}
             <Button
-              className="mt-2 bg-[oklch(0.48_0.26_292)] hover:bg-[oklch(0.55_0.26_292)] text-white font-semibold"
-              onClick={() => { setMobileOpen(false); toast.success("Membership signup coming soon!"); }}
+              variant="outline"
+              className="mt-2 border-white/20 bg-white/5 text-white"
+              onClick={() => { setMobileOpen(false); if (user) void signOut(); else openAuth(); }}
+            >
+              {user ? `Log Out (${user.email})` : "Log In"}
+            </Button>
+            <Button
+              className="bg-[oklch(0.48_0.26_292)] hover:bg-[oklch(0.55_0.26_292)] text-white font-semibold"
+              onClick={() => { setMobileOpen(false); goToPricing(); }}
             >
               Join Now
             </Button>
