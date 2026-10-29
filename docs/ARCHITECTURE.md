@@ -6,20 +6,56 @@ React app on GitHub Pages that talks straight to its own Supabase project for si
 
 ## Tech stack
 
+A visit goes top to bottom, one layer at a time.
+
 ```mermaid
-flowchart LR
-  V["Visitor's browser"] -. "DNS lookup" .-> CF["Cloudflare DNS<br/>DNS only, not proxied"]
-  V -- "loads the app" --> GP["GitHub Pages<br/>VFAssociates/ggtrading.io"]
-  SRC["Source: VFTechLLC/ggtrading<br/>Action on every push to main"] -- build --> GP
-  V -- "sign-in, plans, contact" --> SB["Supabase project GG Trading<br/>Auth, Postgres, Edge Functions"]
-  SB --> TS["Turnstile<br/>spam check"]
-  SB --> RS["Resend<br/>noreply@ggtrading.io"]
-  SB --> GG["Google sign-in<br/>Cloud project GG Trading"]
-  RS --> IN["Visitor + admin@vftech.io"]
-  CF -. "email MX" .-> GW["Google Workspace"]
+flowchart TB
+  U["Visitor's browser"]
+  subgraph L1["1. DNS"]
+    DNS["Cloudflare DNS<br/>zone ggtrading.io, DNS only"]
+  end
+  subgraph L2["2. Frontend hosting"]
+    GP["GitHub Pages<br/>React app, built with Vite"]
+  end
+  subgraph L3["3. Login and our API"]
+    AU["Supabase Auth<br/>Google + email/password"]
+    EF["Supabase Edge Functions, TypeScript<br/>contact, membership"]
+  end
+  subgraph L4["4. Email, login provider and spam check"]
+    RS["Resend API<br/>contact, welcome and sign-up emails"]
+    GO["Google OAuth"]
+    TS["Cloudflare Turnstile<br/>spam check"]
+  end
+  subgraph L5["5. Database"]
+    PG[("Supabase Postgres<br/>profiles, contact_messages")]
+  end
+  U --> DNS
+  DNS --> GP
+  GP -- "app calls" --> AU
+  GP -- "app calls" --> EF
+  AU --> GO
+  AU --> RS
+  AU --> TS
+  EF --> RS
+  EF --> TS
+  AU --> PG
+  EF --> PG
 ```
 
-Supabase pieces: Auth (Google + email/password, Turnstile CAPTCHA, emails via Resend SMTP), Postgres tables `profiles` and `contact_messages`, Edge Functions `contact` and `membership`.
+| Layer | Technology | Hosted on | Used for |
+|---|---|---|---|
+| 1. DNS | Cloudflare DNS, not proxied | Cloudflare | Points ggtrading.io at GitHub Pages |
+| 2. Frontend | React + Vite | GitHub Pages (`VFAssociates/ggtrading.io`) | Home page sections, Streams page, sign-in dialog |
+| 3. Login | Supabase Auth | Supabase (project GG Trading, East US) | Member accounts: Google or email + password |
+| 3. Our API | Supabase Edge Functions (TypeScript) | Supabase | Contact form and plan signup |
+| 4. Email | Resend API, from noreply@ggtrading.io | Resend | Contact replies, admin notices, welcome and sign-up emails |
+| 4. Spam check | Cloudflare Turnstile | Cloudflare | Contact form and email sign-in |
+| 5. Database | Supabase Postgres | Supabase | Member profiles and contact messages |
+| Mailboxes | Google Workspace | Google | brandon@ and contact@ggtrading.io |
+
+**Adding our own APIs or database later** (Railway or similar): they would slot in at layer 3 and layer 5, next to or instead of the Supabase pieces.
+
+Source code is in `VFTechLLC/ggtrading`; every push to main builds it into GitHub Pages.
 
 ## Site map
 
